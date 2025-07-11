@@ -1,4 +1,3 @@
-https://www.youtube.com/watch?v=Dv68vgkAwX8
 
 ```
 ai-prompt-briefing/
@@ -58,6 +57,7 @@ ai-prompt-briefing/
 └── 📄 requirements.txt             # 참고 자료·필독 문서 목록
 
 ```
+https://www.youtube.com/watch?v=Dv68vgkAwX8
 
 # 블록체인 강의 핵심 개념
 
