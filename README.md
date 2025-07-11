@@ -1,3 +1,5 @@
+https://www.youtube.com/watch?v=Dv68vgkAwX8
+
 ```
 ai-prompt-briefing/
 ├── 📄 README.md                    # 문서 개요 및 활용 방법
