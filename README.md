@@ -1,4 +1,4 @@
-
+```
 ai-prompt-briefing/
 ├── 📄 README.md                    # 문서 개요 및 활용 방법
 ├── 📁 1_prompt_importance/         # 1. 프롬프트의 중요성
@@ -36,3 +36,4 @@ ai-prompt-briefing/
 │   ├── 📄 future_goal.md           # 미래 지향적 목표
 │   └── 📄 quote.txt                # 원문 인용 구절
 └── 📄 requirements.txt             # 참고 자료·필독 문서 목록
+```
