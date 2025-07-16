@@ -1,0 +1,248 @@
+{
+  "name": "MCP smithery Context7 활용",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "c1e424f2-f5c7-4e9f-9318-929cd33470e7",
+      "name": "When chat message received",
+      "webhookId": "56311357-aa26-4f8a-a3c1-d16c48b9cebc"
+    },
+    {
+      "parameters": {
+        "options": {
+          "systemMessage": "=# Mission\n당신은 사용자의 질문에 답변하는 전문 소프트웨어 개발 문서 어시스턴트입니다. 당신의 주요 임무는 사용자가 특정 기술에 대해 질문했을 때, 가장 정확하고 최신 정보를 제공하는 것입니다.\n\n# Rules\n- 사용자가 라이브러리, 프레임워크, API, 특정 함수에 대해 질문하면, 답변을 위해 반드시 다음 2단계 과정을 따라야 합니다.\n\n- **1단계: 라이브러리 ID 확인**\n  - 먼저 `resolve-library-id` 도구를 사용해서 질문에 해당하는 공식 라이브러리 ID를 찾아야 합니다.\n  - 이 도구를 호출할 때는, 검색할 라이브러리 이름을 반드시 `libraryName`이라는 파라미터에 담아서 보내야 합니다.\n\n- **2단계: 공식 문서 검색**\n  - 1단계에서 얻은 라이브러리 ID를 사용하여, `get-library-docs` 도구를 호출해서 실제 문서를 가져와야 합니다.\n  - 이 도구를 호출할 때는, **context7CompatibleLibraryID** 라는 파라미터에 1단계에서 얻은 ID를 담아서 보내야 합니다.\n\n- 최종 답변은 반드시 2단계에서 얻은 최신 공식 문서 내용만을 바탕으로 생성해야 합니다. 절대로 당신의 기존 지식으로만 답변하면 안 됩니다.\n\n# Answer Format\n- 사용자가 질문한 내용의 핵심을 먼저 요약해서 설명해 주세요.\n- 설명과 함께 사용자가 쉽게 이해하고 사용할 수 있도록 코드 예제를 마크다운 코드 블록 형식으로 제공해 주세요.\n- 만약 도구를 통해 정보를 찾을 수 없다면, \"요청하신 내용에 대한 최신 정보를 찾을 수 없습니다.\"라고 솔직하게 답변하세요.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "id": "def29f5f-afee-4b04-8f3d-94aba0b1ec61",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        -20,
+        260
+      ],
+      "id": "2c013675-f980-4ad4-adae-9019df823529",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "phcKV5yWdTuHuJrD",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        140,
+        260
+      ],
+      "id": "cd3cdc0b-9054-4d81-8c10-6259a977a101",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "connectionType": "http"
+      },
+      "type": "n8n-nodes-mcp.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        380,
+        260
+      ],
+      "id": "540cef7e-1b9e-45e7-a805-0f8c3d1e90ee",
+      "name": "MCP Context7 listTools",
+      "credentials": {
+        "mcpClientHttpApi": {
+          "id": "iCYKhdd14KA4Uja4",
+          "name": "MCP Client (HTTP Streamable) account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.toolThink",
+      "typeVersion": 1,
+      "position": [
+        260,
+        260
+      ],
+      "id": "b1207f58-96ff-4bb6-8e5e-1ed8f88a92a2",
+      "name": "Think"
+    },
+    {
+      "parameters": {
+        "connectionType": "http",
+        "operation": "executeTool",
+        "toolName": "=resolve-library-id",
+        "toolParameters": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Tool_Parameters', ``, 'json') }}"
+      },
+      "type": "n8n-nodes-mcp.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        540,
+        260
+      ],
+      "id": "12d42e60-df93-4306-8b4f-7d1575db1bbd",
+      "name": "resolve-library-id",
+      "credentials": {
+        "mcpClientHttpApi": {
+          "id": "iCYKhdd14KA4Uja4",
+          "name": "MCP Client (HTTP Streamable) account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "connectionType": "http",
+        "operation": "executeTool",
+        "toolName": "=get-library-docs",
+        "toolParameters": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Tool_Parameters', ``, 'json') }}"
+      },
+      "type": "n8n-nodes-mcp.mcpClientTool",
+      "typeVersion": 1,
+      "position": [
+        660,
+        260
+      ],
+      "id": "84c8af41-d3f7-4b2a-8bcd-75ebcbe656ce",
+      "name": "get-library-docs",
+      "credentials": {
+        "mcpClientHttpApi": {
+          "id": "iCYKhdd14KA4Uja4",
+          "name": "MCP Client (HTTP Streamable) account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## I'm a note \n**Double click** to edit me. [Guide](https://docs.n8n.io/workflows/sticky-notes/)\n\n최근 업데이트된 React 라이브러리의 릴리즈 노트나 변경 사항(changelog)을 찾아서 요약해 줘",
+        "width": 1000
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -220,
+        -280
+      ],
+      "id": "3e5a6bd5-653b-4c51-9e37-74b815b3266b",
+      "name": "Sticky Note"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MCP Context7 listTools": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Think": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "resolve-library-id": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "get-library-docs": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "b873b3c5-c8c9-4658-b77b-64f717ba6148",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aadbff4410dd9d1786f247987e16ea2f31e4d42d2dd7d7f51389a021736ae496"
+  },
+  "id": "y0GUdFGkIxH1ULNC",
+  "tags": []
+}
