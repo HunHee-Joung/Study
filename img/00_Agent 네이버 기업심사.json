@@ -1,0 +1,831 @@
+{
+  "name": "00 Agent 가 네이버기사 전체정리",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=##Overview\nYou are the ultimate personal assistant. Your job is to search Naver for articles that contain substantive information about the target company and summarize them for bank review purposes.\n\n##Tools\nsuperbase: Use this to process keywords, inclusion phrases, and exclusion phrases for article searches.\nNaver: Formulate search queries as {{ $json.keyword }} \n\n##Rules\n#Search Parameters\n1. Primary filter: Articles must contain {{ $json.keyword }}  (기업명) in a substantive context.\n2. Mandatory exclusions:\n   - 기사 내용: 홍보, 모임참석, 스포츠, 후원사업, 증권시황, 봉사, 주가, 주식, 증시, 시세, 증권\n   - 기사 형식: 광고성 기사, 보도자료 단순 나열, 기업 단순 언급\n3. If {{ $json.keyword }}가 기사 내용에서 부수적으로만 언급되고 실질적인 정보가 없다면 제외하십시오.\n4. Naver Search API는 한 번만 호출하여 결과를 가져오세요. 중복 호출이나 추가 검색은 수행하지 마십시오.\nKeyword: {{ $json.keyword }}\n5. **AI요약**에는 반드시 단어(Phrases to include: {{ $json.include_phrases }}중 하나라도 포함되거나  단어(Phrases to exclude: {{ $json.exclude_phrases }})들중 하나도 포함되지 않아아야 한다. \n6. IMPORTANT: Execute only ONE search session per request. Do not make multiple or repeated search queries for the same keyword. Process all filtering and selection from the single search result set.\n\n#Relevance Criteria (필수 포함 대상)\n기사는 다음 중 하나 이상의 정보를 포함해야 합니다:\n- 기업의 재무상태나 실적\n- 사업 확장 또는 축소 계획\n- 투자 유치 또는 투자 계획\n- 경영진 변경 또는 중요 인사 관련 정보\n- 규제 이슈 또는 법적 문제\n- 산업 내 위치 또는 경쟁사와의 관계\n- M&A, 파트너십, 합병 관련 정보\n- 중요 제품/서비스 출시 또는 변경\n- 기업 신용도에 영향을 미치는 모든 정보\n\nIf no article is found or all articles are excluded based on the filtering criteria, use:\n\n**키워드** : {{ $json.keyword }}\n**제외어** : [해당무]\n**기사제목**: [해당무]\n**AI요약**: \"NO_RESULTS\",\n**출처**: [해당무]\n**발행일시**: [2000-01-01 00:00:00]\n**링크**: [해당무]\n\n#Content Guidelines\n1. 각 기사 내용에서 은행 심사부서에서 관심 있을 만한 정보만 요약하십시오:\n   - 기업의 재무 상태, 신용 정보, 규제 관련 내용에 초점\n   - 단순 홍보성 내용 또는 중요하지 않은 일상적 활동은 제외\n   - 기업 평판이나 위기에 관한 정보는 포함\n\n2. 중복되거나 매우 유사한 기사는 가장 최신 기사 또는 가장 상세한 기사만 포함하십시오.\n\n3. 요약 작성 후 반드시 다음 질문에 대해 확인하십시오:\n   - 이 기사가 해당 기업에 대한 실질적인 정보를 제공하는가?\n   - 이 정보가 은행의 기업 심사에 유용한가?\n   - 기업명이 단순히 언급된 것이 아니라 기업 자체에 관한 내용인가?\n   위 질문 중 하나라도 '아니오'라면 해당 기사는 제외하십시오.\n\n#Delivery\nCompile all individual article summaries into a single comprehensive report and send it as one email to the designated recipient.",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        680,
+        -60
+      ],
+      "id": "4d9da8c9-c2f7-4ab3-bae8-99203acc2749",
+      "name": "AI Agent",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "tableId": "keyword_search_management",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "registrant",
+              "keyValue": "XXX"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        -60,
+        -80
+      ],
+      "id": "946be7d8-da22-43a5-a7c8-33ab56340812",
+      "name": "Supabase",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juqaZPU386k8IIon",
+          "name": "Supabase account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        380,
+        -80
+      ],
+      "id": "c8724d2f-7388-4c77-b3d2-d0826f8c3610",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "name": "Replace Me",
+      "typeVersion": 1,
+      "position": [
+        1460,
+        80
+      ],
+      "id": "8f08d099-2d49-4b67-bc54-c7f7dfab77a2"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "gpt-4o-mini"
+        },
+        "options": {
+          "temperature": 0
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        420,
+        340
+      ],
+      "id": "a7de076e-14ff-47ea-a727-6bc724ee2d98",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "phcKV5yWdTuHuJrD",
+          "name": "OpenAi account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "[\n  {\n    \"키워드\": \"키워드\",\n    \"기사제목\": \"기사제목\",\n    \"Query\": \"Query\",\n    \"AI요약\": \"AI요약\",\n    \"출처\": \"출처\",\n    \"발행일시\": \"YYYY-MM-DD YY:MM:dd\",\n    \"링크\": \"링크\", \n    \"include_phrases\": \"include_phrases\",\n    \"exclude_phrases\": \"exclude_phrases\"\n    \n  }\n]"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        860,
+        320
+      ],
+      "id": "2bca9b99-c2f3-40d0-a619-e90d49c45633",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.telegram_id }}",
+        "text": "=⏰ 전송시각:[N]{{ $('Code_telegram_emai_discord').item.json.sendTime }}\n{{ $('Code_telegram_emai_discord').item.json.telegramMessage }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2500,
+        160
+      ],
+      "id": "52909dc2-8f75-4c08-848f-a83bc5ad9a67",
+      "name": "Telegram",
+      "webhookId": "aa7d6cca-4d54-43ce-a3b2-ae2ef8c5ab6e",
+      "credentials": {
+        "telegramApi": {
+          "id": "7vvWYrDLKvBKcalG",
+          "name": "Telegram account 2"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -260,
+        -80
+      ],
+      "id": "baa855e2-0eb9-439d-b32a-a90b59815df6",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=⏰ 전송시각:[N] {{ $('Code_telegram_emai_discord').item.json.sendTime }}\n{{ $json.discordMessage }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        2500,
+        340
+      ],
+      "id": "b47cb2ad-2094-429c-807d-4a7db566cc91",
+      "name": "Discord",
+      "webhookId": "80c181b0-bb20-4252-acfe-f955452bc6b9",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "ELPkH0BOFRxwKdWI",
+          "name": "Discord Webhook account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 입력된 기사 데이터를 HTML 이메일 형식으로 변환\nfunction formatForEmail(items) {\n  // 메인 컨테이너 스타일\n  const mainStyle = `\n    font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;\n    max-width: 800px;\n    margin: 0;\n    padding: 20px;\n    background-color: #f9f9f9;\n    border-radius: 12px;\n    border: 1px solid #e0e0e0;\n  `;\n  \n  // 헤더 스타일 - 그라데이션 적용\n  const headerStyle = `\n    background: linear-gradient(135deg, #4a6fa5 0%, #3a5a8c 100%);\n    padding: 20px 25px;\n    border-radius: 8px 8px 0 0;\n    margin-bottom: 25px;\n    box-shadow: 0 2px 5px rgba(0,0,0,0.1);\n  `;\n  \n  // 기사 카드 스타일 - 호버 효과 추가\n  const cardStyle = `\n    background-color: white;\n    border-radius: 8px;\n    box-shadow: 0 3px 10px rgba(0,0,0,0.08);\n    margin-bottom: 20px;\n    padding: 20px;\n    transition: transform 0.2s ease;\n    border-left: 4px solid #4a6fa5;\n  `;\n  \n  // 기사 제목 스타일 - 더 눈에 띄게\n  const titleStyle = `\n    color: #2e5c8a;\n    font-size: 20px;\n    font-weight: bold;\n    margin: 0 0 12px 0;\n    line-height: 1.4;\n  `;\n  \n  // 메타 정보 스타일 - 간격 개선\n  const metaStyle = `\n    color: #666;\n    font-size: 14px;\n    margin-bottom: 12px;\n    display: flex;\n    align-items: center;\n    gap: 12px;\n  `;\n  \n  // 메타 항목 스타일\n  const metaItemStyle = `\n    display: inline-flex;\n    align-items: center;\n    gap: 5px;\n  `;\n  \n  // 요약 스타일 - 가독성 개선\n  const summaryStyle = `\n    color: #333;\n    margin: 15px 0;\n    line-height: 1.6;\n    background-color: #f8f9fa;\n    padding: 15px;\n    border-radius: 6px;\n    font-size: 15px;\n  `;\n  \n  // 링크 버튼 스타일 - 더 눈에 띄게 (색상 변경)\n  const linkButtonStyle = `\n    display: inline-block;\n    background: linear-gradient(135deg, #4a6fa5 0%, #3a5a8c 100%);\n    color: #660099;\n    padding: 10px 16px;\n    text-decoration: none;\n    border-radius: 6px;\n    font-size: 14px;\n    margin-top: 10px;\n    font-weight: 500;\n    box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n  `;\n  \n  // 푸터 스타일 - 시각적 구분 개선\n  const footerStyle = `\n    text-align: center;\n    padding: 20px 15px;\n    margin-top: 30px;\n    border-top: 1px solid #ddd;\n    color: #666;\n    font-size: 14px;\n    background-color: #f0f2f5;\n    border-radius: 0 0 8px 8px;\n  `;\n  \n  // 헤더 제목 스타일 (흰색에서 변경)\n  const headerTitleStyle = `\n    margin: 0; \n    font-size: 24px; \n    font-weight: 600; \n    color: #660099;\n  `;\n  \n  // 헤더 부제목 스타일 (흰색에서 변경)\n  const headerSubtitleStyle = `\n    margin: 8px 0 0 0; \n    font-size: 15px; \n    opacity: 0.9; \n    color: #660099;\n  `;\n  \n  // HTML 시작\n  let html = `\n  <div style=\"${mainStyle}\">\n    <div style=\"${headerStyle}\">\n      <h1 style=\"${headerTitleStyle}\">🔍 검색 결과: \"${items[0].키워드}\"</h1>\n      <p style=\"${headerSubtitleStyle}\">검색 쿼리: ${items[0].Query}   (+):${items[0].include_phrases} (-):${items[0].exclude_phrases}</p>\n    </div>\n  `;\n  \n  // 각 기사에 대한 정보 추가\n  items.forEach((item, index) => {\n    html += `\n    <div style=\"${cardStyle}\">\n      <h2 style=\"${titleStyle}\">${index + 1}. ${item.기사제목}</h2>\n      <div style=\"${metaStyle}\">\n        <span style=\"${metaItemStyle}\">\n          <span style=\"color: #4a6fa5; font-size: 16px;\">📆</span> ${item.발행일시}\n        </span>\n        <span style=\"color: #ccc;\">|</span>\n        <span style=\"${metaItemStyle}\">\n          <span style=\"color: #4a6fa5; font-size: 16px;\">📰</span> ${item.출처}\n        </span>\n      </div>\n      <div style=\"${summaryStyle}\">\n        <span style=\"color: #4a6fa5; font-weight: 600;\">AI 요약:</span><br/>\n        ${item.AI요약}\n      </div>\n      <a href=\"${item.링크}\" style=\"${linkButtonStyle}\" target=\"_blank\">🔗 기사 보기</a>\n    </div>\n    `;\n  });\n  \n  // 바닥글 추가\n  html += `\n    <div style=\"${footerStyle}\">\n      <p style=\"margin: 0 0 5px 0;\">총 <strong style=\"color: #4a6fa5\">${items.length}개</strong>의 검색 결과가 있습니다.</p>\n      <p style=\"margin: 5px 0 0 0; font-size: 13px; color: #888;\">검색 시간: ${items[0].sendTime || new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}</p>\n    </div>\n  </div>\n  `;\n  \n  return html;\n}\n// Discord용 간소화된 메시지 포맷 함수\nfunction formatForDiscord(items) {\n  // Discord 웹훅 호환성을 위해 단순한 마크다운만 사용\n  \n  // 제목 부분 - 간단한 형식\n  // let message = \"```md\\n\";\n  let message = \"\\n\";\n  message += \"## 🔍 검색 결과: \\\"\" + items[0].키워드 + \"\\\"\\n\";\n  // message += \"## 검색 쿼리: \" + items[0].Query + \"\\n\\n\";\n  message += \"## 검색 쿼리: \" + items[0].Query + \" \" + \"  (+):\" + items[0].include_phrases + \" \" + \"(-):\" + items[0].exclude_phrases + \"\\n\\n\";\n  message += \"---------------------------------------------\\n\\n\";\n  \n  // 각 기사에 대한 정보 추가 (간소화)\n  items.forEach((item, index) => {\n    // 기사 번호와 제목\n    message += `## ${index + 1}. ${item.기사제목}\\n`;\n    \n    // 메타 정보 (날짜, 출처)\n    message += `📆 ${item.발행일시} | 📰 ${item.출처}\\n`;\n    \n    // AI 요약\n    message += `📝 AI 요약:\\n> ${item.AI요약.replace(/\\n/g, '\\n> ')}\\n\\n`;\n    \n    // 링크\n    message += `🔗 ${item.링크}\\n`;\n    \n    // 구분선 (마지막 항목이 아닌 경우)\n    if (index < items.length - 1) {\n      message += \"---------------------------------------------\\n\";\n    }\n  });\n  \n  // 바닥글 추가\n  message += \"---------------------------------------------\\n\";\n  message += `총 ${items.length}개의 검색 결과가 있습니다.\\n`;\n  message += \"```\";\n  \n  // Discord 메시지 길이 제한 처리 (2000자)\n  // 기사 수가 적으면 분할하지 않고, 내용이 너무 많을 때만 분할\n  if (message.length > 1900) {\n    const splitMessages = [];\n    let currentMessage = \"\";\n    let partNumber = 1;\n    \n    // 첫 번째 메시지 헤더\n    //currentMessage = \"```md\\n\";\n    currentMessage = \"\\n\";\n    currentMessage += \"## 🔍 검색 결과: \\\"\" + items[0].키워드 + \"\\\"\\n\";\n    //currentMessage += \"## 검색 쿼리: \" + items[0].Query + \"\\n\";\n\tcurrentMessage += \"## 검색 쿼리: \" + items[0].Query + \" \" + \"  (+): \" + items[0].include_phrases + \" \" + \" (-): \" + items[0].exclude_phrases + \"\\n\";\n    currentMessage += \"---------------------------------------------\\n\";\n    \n    // 각 기사를 개별적으로 처리\n    for (let i = 0; i < items.length; i++) {\n      // 기사 포맷팅\n      const articleContent = \n        `## ${i + 1}. ${items[i].기사제목}\\n` +\n        `📆 ${items[i].발행일시} | 📰 ${items[i].출처}\\n` +\n        `📝 AI 요약:\\n> ${items[i].AI요약.replace(/\\n/g, '\\n> ')}\\n` +\n        `🔗 ${items[i].링크}\\n\\n` +\n        (i < items.length - 1 ? \"---------------------------------------------\\n\" : \"\");\n      \n      // 현재 메시지에 이 기사를 추가했을 때 길이 제한을 초과하는지 확인\n      if (currentMessage.length + articleContent.length > 1800) {\n        // 현재 메시지 종료\n        currentMessage += \"```\";\n        splitMessages.push(currentMessage);\n        \n        // 새 메시지 시작 - 파트 번호 없이\n        // currentMessage = \"```md\\n\";\n        currentMessage = \"\\n\";\n        currentMessage += `# 🔍 검색 결과: \"${items[0].키워드}\" (계속)\\n\\n`;\n      }\n      \n      // 현재 기사 내용 추가\n      currentMessage += articleContent;\n    }\n    \n    // 마지막 메시지에 푸터 추가\n    currentMessage += \"---------------------------------------------\\n\";\n    currentMessage += `총 ${items.length}개의 검색 결과가 있습니다.\\n`;\n    currentMessage += \"```\";\n    splitMessages.push(currentMessage);\n    \n    return splitMessages;\n  }\n  \n  return message;\n}\n// 텔레그램용 강화된 메시지 포맷 함수\nfunction formatForTelegram(items) {\n  // 헤더 메시지 생성 - 더 시각적으로 개선\n  let message = `*📊 검색 결과: \"${items[0].키워드}\"*\\n`;\n  message += `📝 검색 쿼리: \\`${items[0].Query}\\`\\n`;\n  message += `━━━━━━━━━━━━━━━━━━━━━\\n`;\n  \n  // 각 기사에 대한 정보 추가 - 더 구조화된 형태로\n  items.forEach((item, index) => {\n    message += `*${index + 1}. ${item.기사제목}*\\n`;\n    message += `📆 날짜: ${item.발행일시}\\n`;\n    message += `📰 출처: ${item.출처}\\n`;\n    message += `📌 AI 요약:\\n${item.AI요약}\\n`;\n    message += `🔗 [기사 보기](${item.링크})\\n`;\n    \n    // 마지막 항목이 아니면 구분선 추가\n    if (index < items.length - 1) {\n      message += `┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄\\n`;\n    }\n  });\n  \n  // 바닥글 추가 - 더 눈에 띄게\n  message += `━━━━━━━━━━━━━━━━━━━━━\\n`;\n  message += `📈 결과 요약: 총 ${items.length}개의 검색 결과\\n`;\n  message += `🕒 검색 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}`;\n  \n  return message;\n}\n// 입력 데이터 처리\nfor (const item of $input.all()) {\n  // 한국 시간 생성\n  const now = new Date();\n  now.setTime(now.getTime() + (9 * 60 * 60 * 1000)); // UTC+9 (한국 시간)\n  const sendTime = now.toISOString().replace('T', ' ').slice(0, 19);\n  \n  // sendTime 키 추가\n  item.json.sendTime = sendTime;\n  \n  // 입력이 배열 형태로 들어오는 경우 처리\n  if (item.json.output && Array.isArray(item.json.output)) {\n    // 각 포맷 적용\n    item.json.telegramMessage = formatForTelegram(item.json.output);\n    item.json.emailHTML = formatForEmail(item.json.output);\n    item.json.discordMessage = formatForDiscord(item.json.output);\n  }\n}\nreturn $input.all();"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1600,
+        -60
+      ],
+      "id": "3d9a408c-0f9b-44da-a9cc-c60412124af8",
+      "name": "Code_telegram_emai_discord",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "discordMessage",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        2280,
+        340
+      ],
+      "id": "d547788d-eba0-4ffb-b337-f0d2c3aa1da8",
+      "name": "Split Out",
+      "notesInFlow": true,
+      "notes": "디스코드 배열치리"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Retrieve up to 10 articles from Open ai Naver published within the last day.",
+        "url": "https://openapi.naver.com/v1/search/news.json",
+        "sendQuery": true,
+        "parametersQuery": {
+          "values": [
+            {
+              "name": "query"
+            },
+            {
+              "name": "num",
+              "valueProvider": "fieldValue",
+              "value": "1"
+            },
+            {
+              "name": "sort",
+              "valueProvider": "fieldValue",
+              "value": "date"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "x-naver-client-id",
+              "valueProvider": "fieldValue",
+              "value": "xxxxxx"
+            },
+            {
+              "name": "x-naver-client-secret",
+              "valueProvider": "fieldValue",
+              "value": "xxxxxxx"
+            }
+          ]
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        640,
+        300
+      ],
+      "id": "2f65a822-cc23-452a-b802-2a11f08110f4",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "// n8n 함수 노드 코드\n// 발행일시가 현재 시간으로부터 24시간 이내인 기사만 필터링하여 반환\n\n// 입력 데이터 가져오기\nconst items = $input.all();\n\n// 현재 시간을 가져옵니다\nconst currentTime = new Date();\n\n// 24시간 전 시간을 계산합니다 (밀리초 단위)\nconst twentyFourHoursAgo = new Date(currentTime.getTime() - 24 * 60 * 60 * 1000);\n\n// 결과 배열 준비\nconst results = [];\n\n// 입력 데이터 처리\nfor (const item of items) {\n  // item.json.output 배열 접근\n  if (item.json && item.json.output && Array.isArray(item.json.output)) {\n    // 발행일시가 24시간 이전이거나 AI요약이 NO_RESULTS인 항목은 제외\n    const filteredOutput = item.json.output.filter(article => {\n      if (!article) return false;\n      \n      // AI요약이 NO_RESULTS인 경우 제외\n      if (article.AI요약 === \"NO_RESULTS\") return false;\n      \n      // 발행일시가 존재하는 경우에만 시간 체크\n      if (article.발행일시) {\n        // 발행일시 문자열을 Date 객체로 변환\n        const publishTime = new Date(article.발행일시);\n        \n        // 발행일시가 24시간 이전인 경우 제외\n        if (publishTime < twentyFourHoursAgo) return false;\n      }\n      \n      // 모든 조건을 통과하면 포함\n      return true;\n    });\n    \n    // 필터링된 결과를 결과 배열에 추가\n    results.push({\n      json: {\n        output: filteredOutput\n      }\n    });\n  } else {\n    // 원본 데이터 구조 유지\n    results.push(item);\n  }\n}\n\n// 필터링된 결과 반환\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        -60
+      ],
+      "id": "db19879f-5607-4a73-8d02-ec79cf4323bf",
+      "name": "Code1",
+      "notesInFlow": true,
+      "onError": "continueRegularOutput",
+      "notes": "최근 24시간 체크 * NO_RESULTS CHECK"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "telegram_users",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "use_YN",
+              "condition": "eq",
+              "keyValue": "Y"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        2120,
+        20
+      ],
+      "id": "638d6e5c-7f52-43a2-85d6-d6b9703850c0",
+      "name": "Supabase2",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juqaZPU386k8IIon",
+          "name": "Supabase account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        2280,
+        160
+      ],
+      "id": "35e6a442-a48d-49ec-87a9-fddf5a44da91",
+      "name": "Merge1",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "fromEmail": "asirioo@naver.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "=[NN] [{{ DateTime.now().toFormat('yyyy-MM-dd') }}({{ DateTime.now().setLocale('ko').toFormat('ccc') }})] D-1 키워드 뉴스",
+        "html": "={{ $json.html_page.replace(/\\n/g, '') }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1140,
+        600
+      ],
+      "id": "282c25d8-5eb8-49ef-9b00-3fe087c72c8c",
+      "name": "Send Email2",
+      "webhookId": "f78a58fa-d3d2-4e7d-8143-0564b2074ea6",
+      "notesInFlow": true,
+      "credentials": {
+        "smtp": {
+          "id": "rSMrdjaKgISOEl9I",
+          "name": "SMTP account 2"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "정훈희"
+    },
+    {
+      "parameters": {
+        "tableId": "news_articles",
+        "fieldsUi": {
+          "fieldValues": [
+            {
+              "fieldId": "keyword",
+              "fieldValue": "={{ $json.output[0]['키워드'] }}"
+            },
+            {
+              "fieldId": "article_title",
+              "fieldValue": "={{ $json.output[0]['기사제목'] }}"
+            },
+            {
+              "fieldId": "query",
+              "fieldValue": "={{ $json.output[0].Query }}"
+            },
+            {
+              "fieldId": "ai_summary",
+              "fieldValue": "={{ $json.output[0]['AI요약'] }}"
+            },
+            {
+              "fieldId": "source",
+              "fieldValue": "={{ $json.output[0]['출처'] }}"
+            },
+            {
+              "fieldId": "published_at",
+              "fieldValue": "={{ $json.output[0]['발행일시'] }}"
+            },
+            {
+              "fieldId": "link",
+              "fieldValue": "={{ $json.output[0]['링크'] }}"
+            },
+            {
+              "fieldId": "date",
+              "fieldValue": "={{ DateTime.now().toFormat('yyyyMMdd') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        -240
+      ],
+      "id": "0dfe5d0a-b859-4f61-9091-2c9731862052",
+      "name": "Supabase3",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juqaZPU386k8IIon",
+          "name": "Supabase account 3"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "tableId": "news_articles",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "date",
+              "condition": "eq",
+              "keyValue": "={{ DateTime.now().toFormat('yyyyMMdd') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        500,
+        -360
+      ],
+      "id": "830056d5-f446-4241-8017-7f41f591d749",
+      "name": "Supabase4",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juqaZPU386k8IIon",
+          "name": "Supabase account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "news_articles",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "date",
+              "condition": "eq",
+              "keyValue": "={{ DateTime.now().toFormat('yyyyMMdd') }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        420,
+        620
+      ],
+      "id": "bba8185c-4573-435a-9fa1-6d59e25d2609",
+      "name": "Supabase5",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juqaZPU386k8IIon",
+          "name": "Supabase account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "aaaa",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        220,
+        620
+      ],
+      "id": "fc7fa301-f18c-41dd-bbbe-d223e9f22875",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 날짜 포맷 함수\nfunction formatDate(dateString) {\n  const date = new Date(dateString);\n  return date.toLocaleString('ko-KR', {\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit'\n  });\n}\n\n// 모든 입력 아이템 가져오기\nconst allItems = $input.all();\n\n// 이메일 호환 HTML 생성 (인라인 스타일만 사용)\nconst htmlContent = `\n<!DOCTYPE html>\n<html lang=\"ko\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>뉴스 기사 리스트</title>\n</head>\n<body style=\"margin: 0; padding: 20px; font-family: 'Malgun Gothic', Arial, sans-serif; background-color: #f5f5f5; line-height: 1.6;\">\n    \n    <!-- 메인 컨테이너 -->\n    <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 800px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.1);\">\n        \n        <!-- 헤더 -->\n        <tr>\n            <td style=\"background: linear-gradient(135deg, #4a6fa5 0%, #3a5a8c 100%); background-color: #4a6fa5; padding: 25px 30px; text-align: center;\">\n                <h1 style=\"margin: 0; font-size: 24px; font-weight: bold; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.3);\">🔍 뉴스 검색 결과</h1>\n                <p style=\"margin: 8px 0 0 0; font-size: 16px; color: #ffffff; opacity: 0.9;\">AI가 요약한 최신 뉴스를 확인하세요</p>\n            </td>\n        </tr>\n        \n        <!-- 컨텐츠 영역 -->\n        <tr>\n            <td style=\"padding: 30px;\">\n                \n                ${allItems.map((item, index) => `\n                <!-- 기사 카드 ${index + 1} -->\n                <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #ffffff; border: 1px solid #e0e0e0; border-radius: 8px; margin-bottom: 20px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.05);\">\n                    <tr>\n                        <td style=\"padding: 20px; border-left: 4px solid #4a6fa5;\">\n                            \n                            <!-- 번호와 키워드 -->\n                            <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n                                <tr>\n                                    <td style=\"vertical-align: top;\">\n                                        <span style=\"display: inline-block; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); background-color: #667eea; color: #ffffff; padding: 6px 12px; border-radius: 15px; font-size: 12px; font-weight: bold; margin-bottom: 10px;\">${item.json.keyword}</span>\n                                    </td>\n                                    <td style=\"text-align: right; vertical-align: top;\">\n                                        <span style=\"display: inline-block; background-color: #4a6fa5; color: #ffffff; width: 30px; height: 30px; line-height: 30px; text-align: center; border-radius: 50%; font-size: 14px; font-weight: bold;\">${index + 1}</span>\n                                    </td>\n                                </tr>\n                            </table>\n                            \n                            <!-- 기사 제목 -->\n                            <h2 style=\"margin: 15px 0; font-size: 18px; font-weight: bold; color: #2e5c8a; line-height: 1.4;\">\n                                <a href=\"${item.json.link}\" style=\"color: #2e5c8a; text-decoration: none;\" target=\"_blank\">${item.json.article_title}</a>\n                            </h2>\n                            \n                            <!-- 메타 정보 -->\n                            <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 15px;\">\n                                <tr>\n                                    <td style=\"padding: 8px 12px; background-color: #f8f9fa; border-radius: 15px; margin-right: 10px; font-size: 13px; color: #666666; display: inline-block;\">\n                                        <span style=\"color: #4a6fa5;\">📅</span> ${formatDate(item.json.published_at)}\n                                    </td>\n                                    <td style=\"padding: 8px 12px; background-color: #f8f9fa; border-radius: 15px; font-size: 13px; color: #666666; display: inline-block;\">\n                                        <span style=\"color: #4a6fa5;\">📰</span> ${item.json.source}\n                                    </td>\n                                </tr>\n                            </table>\n                            \n                            <!-- AI 요약 -->\n                            <table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea; margin: 15px 0;\">\n                                <tr>\n                                    <td style=\"padding: 18px; position: relative;\">\n                                        <div style=\"color: #4a6fa5; font-weight: bold; margin-bottom: 8px; font-size: 14px;\">🤖 AI 요약</div>\n                                        <div style=\"color: #333333; line-height: 1.6; font-size: 14px;\">${item.json.ai_summary}</div>\n                                    </td>\n                                </tr>\n                            </table>\n                            \n                            <!-- 기사 보기 버튼 -->\n                            <table cellpadding=\"0\" cellspacing=\"0\" border=\"0\">\n                                <tr>\n                                    <td style=\"background: linear-gradient(135deg, #4a6fa5 0%, #3a5a8c 100%); background-color: #4a6fa5; border-radius: 6px; padding: 12px 20px;\">\n                                        <a href=\"${item.json.link}\" style=\"color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 500;\" target=\"_blank\">🔗 기사 전문 보기</a>\n                                    </td>\n                                </tr>\n                            </table>\n                            \n                        </td>\n                    </tr>\n                </table>\n                `).join('')}\n                \n            </td>\n        </tr>\n        \n        <!-- 푸터 -->\n        <tr>\n            <td style=\"padding: 20px; text-align: center; background-color: #f0f2f5; border-top: 1px solid #dddddd;\">\n                <p style=\"margin: 0 0 8px 0; font-size: 16px; color: #666666;\">\n                    총 <span style=\"color: #4a6fa5; font-weight: bold;\">${allItems.length}개</span>의 뉴스 기사가 검색되었습니다\n                </p>\n                <p style=\"margin: 0; font-size: 13px; color: #888888;\">\n                    생성 시간: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}\n                </p>\n            </td>\n        </tr>\n        \n    </table>\n    \n</body>\n</html>`;\n\n// 하나의 통합된 HTML 페이지로 반환 (n개 입력 → 1개 출력)\nreturn [{\n  json: {\n    html_page: htmlContent,\n    total_articles: allItems.length,\n    generated_at: new Date().toISOString()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        620,
+        620
+      ],
+      "id": "613be994-282c-49cc-aad2-0b753727f13e",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "tableId": "mailing_list",
+        "returnAll": true,
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "use_YN",
+              "condition": "eq",
+              "keyValue": "Y"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.supabase",
+      "typeVersion": 1,
+      "position": [
+        600,
+        500
+      ],
+      "id": "623f19cd-eb35-48dc-9239-e16369f0c3ff",
+      "name": "Supabase6",
+      "credentials": {
+        "supabaseApi": {
+          "id": "juqaZPU386k8IIon",
+          "name": "Supabase account 3"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineAll",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3,
+      "position": [
+        880,
+        620
+      ],
+      "id": "98f0a628-46e4-4dc8-8df0-f55ff39e9be6",
+      "name": "Merge3",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "aaaa",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        300,
+        -360
+      ],
+      "id": "f412c2a0-b552-4d78-b100-cdb6b516688b",
+      "name": "Aggregate1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Supabase": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Replace Me": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Replace Me",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Supabase",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code_telegram_emai_discord": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Code_telegram_emai_discord",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase2": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase3": {
+      "main": [
+        []
+      ]
+    },
+    "Supabase5": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase4": {
+      "main": [
+        []
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Supabase5",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Supabase6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Supabase6": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "Send Email2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Supabase4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "2dfc8aba-dd2e-4f2b-9690-4f5dc19baf91",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aadbff4410dd9d1786f247987e16ea2f31e4d42d2dd7d7f51389a021736ae496"
+  },
+  "id": "ovNHNWt5rbfeOb0x",
+  "tags": [
+    {
+      "createdAt": "2025-03-15T11:28:14.094Z",
+      "updatedAt": "2025-03-15T11:28:14.094Z",
+      "id": "CLj2q0Xil8XbfMnE",
+      "name": "뉴스"
+    }
+  ]
+}
