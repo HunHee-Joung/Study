@@ -1,0 +1,7 @@
+# 기본 버전용
+openai>=1.0.0
+requests>=2.28.0
+
+# LangGraph 버전용 (추가)
+langchain-openai>=0.1.0
+langgraph>=0.1.0
