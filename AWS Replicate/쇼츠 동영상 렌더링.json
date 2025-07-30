@@ -1,0 +1,403 @@
+{
+  "name": "쇼츠 동영상 렌더링 copy",
+  "nodes": [
+    {
+      "parameters": {
+        "fieldToSplitOut": "=datasets",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        640,
+        -128
+      ],
+      "id": "90b814e0-f542-42ca-a6ba-abe05d01be2c",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        864,
+        -128
+      ],
+      "id": "371dfaf7-b67d-43b6-be2b-378f02e6c8fb",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "asirio",
+        "fileName": "=mediafx/assets/{{ $binary.data.fileName }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        1552,
+        -128
+      ],
+      "id": "5e44fb31-394a-4c66-87ec-615402828652",
+      "name": "Upload a file",
+      "credentials": {
+        "aws": {
+          "id": "JoxiYaidEVDxmGJL",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "mixAudio",
+        "mixVideoSourceType": "binary",
+        "mixAudioSourceUrl": "={{ $('parameters').item.json.bgm_url }}",
+        "videoVolume": 3,
+        "audioVolume": 0.5,
+        "enableFadeOut": true
+      },
+      "type": "n8n-nodes-mediafx.mediaFX",
+      "typeVersion": 1,
+      "position": [
+        1520,
+        144
+      ],
+      "id": "18627b7a-2574-4f8b-b114-51dcc14d0f7b",
+      "name": "배경음악 삽입"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "asirio",
+        "fileName": "=mediafx/final/{{ $binary.data.fileName}}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        1744,
+        144
+      ],
+      "id": "648c90ef-cb9b-4fb8-9e94-22090391d86e",
+      "name": "Upload a file1",
+      "credentials": {
+        "aws": {
+          "id": "JoxiYaidEVDxmGJL",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "datasets",
+              "type": "array"
+            },
+            {
+              "name": "bgm_url"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        -128
+      ],
+      "id": "2a8a5c06-553c-42f8-b177-b3ada7fa96ae",
+      "name": "parameters"
+    },
+    {
+      "parameters": {
+        "resource": "subtitle",
+        "source": {
+          "source": {
+            "value": "={{ $json.video_url }}"
+          }
+        },
+        "text": "={{ $json.subtitle }}",
+        "startTime": 1,
+        "endTime": 4,
+        "paddingY": 100
+      },
+      "type": "n8n-nodes-mediafx.mediaFX",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        -128
+      ],
+      "id": "5c6adcf9-bfdb-4c14-93b5-5e500bce4965",
+      "name": "자막 삽입"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "mixAudio",
+        "mixVideoSourceType": "binary",
+        "mixAudioSourceUrl": "={{ $('Loop Over Items').item.json.audio_url }}",
+        "enablePartialMix": true,
+        "startTime": 1,
+        "duration": 0
+      },
+      "type": "n8n-nodes-mediafx.mediaFX",
+      "typeVersion": 1,
+      "position": [
+        1328,
+        -128
+      ],
+      "id": "09ee89c1-c823-44c4-bec4-6685264afad0",
+      "name": "나레이션 삽입"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7e5b9439-b341-42c7-b02a-a4e6f8d6c8e6",
+              "name": "=scene_video_url",
+              "value": "=https://xxxxxxxxx.cloudfront.net/mediafx/assets/{{ $('나레이션 삽입').item.binary.data.fileName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1744,
+        -128
+      ],
+      "id": "95f49a44-2823-4356-b6e7-a423398e27b5",
+      "name": "다운로드 파일경로 설정"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "scene_video_url"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        144
+      ],
+      "id": "357a0a7d-1ceb-46d1-9de6-e2d174e4d7af",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "operation": "multiTransition",
+        "transitionSources": {
+          "sources": [
+            {
+              "value": "={{ $json.scene_video_url[0] }}"
+            },
+            {
+              "value": "={{ $json.scene_video_url[1] }}"
+            },
+            {
+              "value": "={{ $json.scene_video_url[2] }}"
+            },
+            {
+              "value": "={{ $json.scene_video_url[3] }}"
+            },
+            {
+              "value": "={{ $json.scene_video_url[4] }}"
+            },
+            {
+              "value": "={{ $json.scene_video_url[5] }}"
+            }
+          ]
+        },
+        "transitionDuration": 0.5
+      },
+      "type": "n8n-nodes-mediafx.mediaFX",
+      "typeVersion": 1,
+      "position": [
+        1312,
+        144
+      ],
+      "id": "8d582662-9485-4ba6-9eeb-56470e1141ab",
+      "name": "영상 병합 및 전환효과"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4f80a9a3-0e98-411b-af3c-3913fe456bf9",
+              "name": "final_video_url",
+              "value": "=https://xxxxxxxx.cloudfront.net/mediafx/final/{{ $('배경음악 삽입').item.binary.data.fileName }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1968,
+        144
+      ],
+      "id": "9d4814a4-723f-441e-92d8-a05916d79e13",
+      "name": "최종 영상 다운로드 경로 리턴"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "자막 삽입",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file": {
+      "main": [
+        [
+          {
+            "node": "다운로드 파일경로 설정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "배경음악 삽입": {
+      "main": [
+        [
+          {
+            "node": "Upload a file1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file1": {
+      "main": [
+        [
+          {
+            "node": "최종 영상 다운로드 경로 리턴",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "parameters": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "자막 삽입": {
+      "main": [
+        [
+          {
+            "node": "나레이션 삽입",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "나레이션 삽입": {
+      "main": [
+        [
+          {
+            "node": "Upload a file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "다운로드 파일경로 설정": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "영상 병합 및 전환효과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "영상 병합 및 전환효과": {
+      "main": [
+        [
+          {
+            "node": "배경음악 삽입",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9418468c-6535-4b8b-86fe-405c1ef0b86b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aadbff4410dd9d1786f247987e16ea2f31e4d42d2dd7d7f51389a021736ae496"
+  },
+  "id": "m7X0DZuBKcDOKMTN",
+  "tags": []
+}

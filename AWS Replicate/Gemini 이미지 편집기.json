@@ -1,0 +1,322 @@
+{
+  "name": "Gemini 이미지 편집기 copy",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "={{ $json.imageUrl }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -208,
+        -16
+      ],
+      "id": "ec0f1721-5cc3-4b6c-8657-ab56a70426c0",
+      "name": "참고이미지",
+      "retryOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  \"image\" :  $input.first().json.imageUrl !== null ? $input.last().binary.data : $input.first().json.imageBinary\n} "
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        32,
+        64
+      ],
+      "id": "b1fe671e-ac27-42e6-957a-fb8db47b07fc",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "candidates[0].content.parts[1].inlineData.data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        464,
+        64
+      ],
+      "id": "762f67e8-e76f-437b-835e-68c013c90098",
+      "name": "Convert to File",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "imageUrl"
+            },
+            {
+              "name": "imageBinary",
+              "type": "object"
+            },
+            {
+              "name": "prompt"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -640,
+        64
+      ],
+      "id": "4818e79d-5dd7-4cca-882b-b63df38b5bff",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "6307c9e2-9cf6-43f6-a5cd-c1fda3869485",
+              "leftValue": "={{ $json.imageUrl }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -416,
+        64
+      ],
+      "id": "157853b1-9b94-4c85-9b5f-6836846dd7c5",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9ee1f23f-196b-4e02-b1bd-3d586c73321d",
+              "name": "imageUrl",
+              "value": "=https://dspnumvazg60a.cloudfront.net/gemini/{{ $('이미지 생성 요청1').item.json.responseId }}.png",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        944,
+        80
+      ],
+      "id": "d77a5179-5fef-4703-91cd-a11011e59100",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7d3d76d2-d04d-43da-a979-ca3c184bdb15",
+              "name": "imageUrl",
+              "value": "이미지 생성에 실패했습니다. 다시요청해주세요.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        640,
+        320
+      ],
+      "id": "b5be9aec-77bc-4783-94e4-a6a2b546aaa2",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-preview-image-generation:generateContent",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "X-goog-api-key",
+              "value": "xxxxxx"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "body": "={\n    \"contents\": [{\n        \"parts\": [\n            {\"text\": \"{{ $('When Executed by Another Workflow').item.json.prompt }}\"},\n            {\n                \"inline_data\": {\n                    \"mime_type\": \"{{ $json.image.mimeType }}\",\n                    \"data\": \"{{ $json.image.data }}\"\n                }\n            }\n        ],       \n    }],\n    \"generationConfig\": {\n      \"responseModalities\": [\"TEXT\", \"IMAGE\"]\n    }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        144
+      ],
+      "id": "b4d2917b-a43b-4baa-b71d-380dc8377500",
+      "name": "이미지 생성 요청",
+      "retryOnFail": true,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "asirio",
+        "fileName": "=gemini/{{ $('이미지 생성 요청1').item.json.responseId }}.png",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        704,
+        48
+      ],
+      "id": "ddda1bbb-f65f-46a4-92b7-b86c56e29fc3",
+      "name": "AWS S3 ",
+      "credentials": {
+        "aws": {
+          "id": "JoxiYaidEVDxmGJL",
+          "name": "AWS account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "참고이미지": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "이미지 생성 요청",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "AWS S3 ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "참고이미지",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이미지 생성 요청": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AWS S3 ": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "d424e49b-0737-429d-8b2b-1bd84f9816c3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aadbff4410dd9d1786f247987e16ea2f31e4d42d2dd7d7f51389a021736ae496"
+  },
+  "id": "rbW2o6HNGd6FasHe",
+  "tags": []
+}

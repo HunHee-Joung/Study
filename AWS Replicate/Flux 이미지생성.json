@@ -1,0 +1,214 @@
+{
+  "name": "Flux 이미지생성 copy",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "={{ $json.output[0] }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -48,
+        -48
+      ],
+      "id": "68e91d5f-5654-4807-abe8-316473ebf584",
+      "name": "이미지 다운로드"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "fa2bab83-6812-4236-9549-71734e6e7592",
+              "name": "=image_url",
+              "value": "=https://xxxxxx.cloudfront.net/flux/{{ $('이미지 다운로드').item.json.id }}.webp",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        384,
+        -48
+      ],
+      "id": "d46ad91d-f7d8-4796-92d2-a4e44dbe5972",
+      "name": "이미지 주소 리턴"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "asirio",
+        "fileName": "=flux/{{ $json.id }}.webp",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        160,
+        -48
+      ],
+      "id": "5721fda8-23c4-4a91-8ffd-14fac521e5a5",
+      "name": "AWS S3 업로드",
+      "credentials": {
+        "aws": {
+          "id": "JoxiYaidEVDxmGJL",
+          "name": "AWS account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "prompt"
+            },
+            {
+              "name": "aspect_ratio"
+            },
+            {
+              "name": "model"
+            },
+            {
+              "name": "prompt_suffix"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -480,
+        -48
+      ],
+      "id": "4558e8ee-7dfa-4764-af02-57a94d2b6afb",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.image_url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        608,
+        -48
+      ],
+      "id": "7f60e69c-ad14-4c3c-be58-f54a5aac80aa",
+      "name": "이미지 다운로드1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.replicate.com/v1/models/black-forest-labs/{{ $json.model ?? \"flux-schnell\" }}/predictions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Prefer",
+              "value": "wait"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"input\" : {\n    \"prompt\" : \"{{ $json.prompt }}, {{ $json.prompt_suffix ?? \"\" }}\",\n    \"aspect_ratio\" : \"{{ $json.aspect_ratio ?? \"1:1\" }}\"\n  }\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -256,
+        -48
+      ],
+      "id": "81a3a61e-c184-4110-ab34-3edf6a81ba86",
+      "name": "이미지 생성 요청",
+      "credentials": {
+        "httpBearerAuth": {
+          "id": "ScXTP2txpbSAXUXl",
+          "name": "Bearer Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "이미지 다운로드": {
+      "main": [
+        [
+          {
+            "node": "AWS S3 업로드",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이미지 주소 리턴": {
+      "main": [
+        [
+          {
+            "node": "이미지 다운로드1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AWS S3 업로드": {
+      "main": [
+        [
+          {
+            "node": "이미지 주소 리턴",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "이미지 생성 요청",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이미지 생성 요청": {
+      "main": [
+        [
+          {
+            "node": "이미지 다운로드",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "57639c9b-cd7b-4cbb-ba0c-b95e2ffac077",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aadbff4410dd9d1786f247987e16ea2f31e4d42d2dd7d7f51389a021736ae496"
+  },
+  "id": "YHpwnuqBos5phR2A",
+  "tags": []
+}

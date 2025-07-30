@@ -1,0 +1,200 @@
+{
+  "name": "ElevenLabs 나레이션 생성기",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "text"
+            }
+          ]
+        }
+      },
+      "id": "8d7573f6-f663-4454-827c-8ba102e519d9",
+      "typeVersion": 1.1,
+      "name": "parameters",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        -416,
+        -80
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "speech",
+        "voice": {
+          "__rl": true,
+          "value": "xi3rF0t7dg7uN2M0WUhr",
+          "mode": "list",
+          "cachedResultName": "Yuna"
+        },
+        "text": "={{ $json.text }}",
+        "additionalOptions": {
+          "model": {
+            "__rl": true,
+            "value": "eleven_multilingual_v2",
+            "mode": "list",
+            "cachedResultName": "Eleven Multilingual v2"
+          },
+          "outputFormat": "mp3_44100_128",
+          "languageCode": "ko",
+          "voiceSettings": "{\n  \"stability\": 0,\n  \"similarity_boost\": 0.25,\n  \"style\": 0.5,\n  \"use_speaker_boost\": true,\n  \"speed\": 1.2\n}"
+        },
+        "requestOptions": {}
+      },
+      "type": "@elevenlabs/n8n-nodes-elevenlabs.elevenLabs",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        -80
+      ],
+      "id": "db3c0f7e-35c4-4bde-ab81-3ec5273259d8",
+      "name": "Convert text to speech",
+      "credentials": {
+        "elevenLabsApi": {
+          "id": "siAfG6KdHbsFOVyQ",
+          "name": "ElevenLabs account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "upload",
+        "bucketName": "asirio",
+        "fileName": "=elevenlabs/{{ $json[\"request-id\"] }}.mp3",
+        "binaryPropertyName": "=data",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.awsS3",
+      "typeVersion": 2,
+      "position": [
+        32,
+        -160
+      ],
+      "id": "d29c8ba0-c19e-4a7c-92fd-d164cf13ba99",
+      "name": "Upload a file",
+      "credentials": {
+        "aws": {
+          "id": "JoxiYaidEVDxmGJL",
+          "name": "AWS account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7128317a-b5ed-4503-abb4-3e35f27f024d",
+              "name": "audio_url",
+              "value": "=https://dspnumvazg60a.cloudfront.net/elevenlabs/{{ $('Convert text to speech').item.json['request-id'] }}.mp3",
+              "type": "string"
+            },
+            {
+              "id": "05f93666-b41a-4523-8897-29e2a7d339b9",
+              "name": "result",
+              "value": "오디오생성 성공.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        -208
+      ],
+      "id": "8187815e-fb88-4e4e-8212-38d66db7cb6d",
+      "name": "오디오 주소 리턴"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "abbb04d9-9051-4aee-b47c-7d04683b3eb8",
+              "name": "result",
+              "value": "오디오 생성 실패. 다시 시도하세요.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        32
+      ],
+      "id": "503e9f1c-99e9-4066-a46c-9f5825706e63",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "parameters": {
+      "main": [
+        [
+          {
+            "node": "Convert text to speech",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert text to speech": {
+      "main": [
+        [
+          {
+            "node": "Upload a file",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload a file": {
+      "main": [
+        [
+          {
+            "node": "오디오 주소 리턴",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8518791b-dbca-4e45-8b4b-bd3812fdbeea",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aadbff4410dd9d1786f247987e16ea2f31e4d42d2dd7d7f51389a021736ae496"
+  },
+  "id": "biEkh9FutrFuNFMr",
+  "tags": []
+}

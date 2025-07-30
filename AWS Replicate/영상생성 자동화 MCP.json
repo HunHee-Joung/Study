@@ -1,0 +1,479 @@
+{
+  "name": "영상생성 자동화 MCP",
+  "nodes": [
+    {
+      "parameters": {
+        "description": "스토리를 입력하면, 해당 스토리를 쇼츠 비디오를 생성하기 좋게 6개 장면(scene)이 있는 플롯을 기획해주는 도구",
+        "workflowId": {
+          "__rl": true,
+          "value": "1TymAHdBgQJc0Izt",
+          "mode": "list",
+          "cachedResultName": "영상생성 기획 워크플로"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "story": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('story', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "story"
+          ],
+          "schema": [
+            {
+              "id": "story",
+              "displayName": "story",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        -48,
+        240
+      ],
+      "id": "a0c01092-1613-450d-aa11-7aa993c4cea3",
+      "name": "Generate Short Video Story"
+    },
+    {
+      "parameters": {
+        "description": "각 장면의 이미지생성용 프롬프트를 입력받아서, 각 장면 AI이미지를 생성해주는 도구",
+        "workflowId": {
+          "__rl": true,
+          "value": "pkazVcexMdnH6GEP",
+          "mode": "list",
+          "cachedResultName": "Flux 이미지생성"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "prompt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('prompt', ``, 'string') }}",
+            "aspect_ratio": "9:16",
+            "model": "flux-dev",
+            "prompt_suffix": "The character in the image should be rendered in a photorealistic 3D style, similar to modern CGI films or high-end video game cinematics"
+          },
+          "matchingColumns": [
+            "prompt"
+          ],
+          "schema": [
+            {
+              "id": "prompt",
+              "displayName": "prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "aspect_ratio",
+              "displayName": "aspect_ratio",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "model",
+              "displayName": "model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "prompt_suffix",
+              "displayName": "prompt_suffix",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        144,
+        240
+      ],
+      "id": "872bc1c8-abe8-4140-b3c0-f04563886694",
+      "name": "Generate AI Image"
+    },
+    {
+      "parameters": {
+        "description": "imageUrl과 prompt를 입력받아서, 입력받은 이미지의 주 대상과 이미지 스타일을 유지하면서, prompt에 설명된 내용으로 이미지를 변경해주는 도구",
+        "workflowId": {
+          "__rl": true,
+          "value": "yxWQYgGnkLirbEEs",
+          "mode": "list",
+          "cachedResultName": "Gemini 이미지 편집기"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "imageUrl": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('imageUrl', ``, 'string') }}",
+            "prompt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('prompt', ``, 'string') }}",
+            "imageBinary": "null"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "imageUrl",
+              "displayName": "imageUrl",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "imageBinary",
+              "displayName": "imageBinary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "object"
+            },
+            {
+              "id": "prompt",
+              "displayName": "prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        320,
+        224
+      ],
+      "id": "0f48bf12-068d-4cf4-ad51-c618b388075f",
+      "name": "Edit AI Image"
+    },
+    {
+      "parameters": {
+        "description": "image_url 을 넘겨받아서, start image로 삼고 5초 분량의 ai 동영상 생성을 요청하는 도구.\nrequest_id를 리턴함. (따라서, Download Generated AI Video 도구를 통해 별도로 생성 상태 확인 및 다운로드를 요청해야함.)\n",
+        "workflowId": {
+          "__rl": true,
+          "value": "YyPIuLGWxsDhEvgZ",
+          "mode": "list",
+          "cachedResultName": "Fal.ai Kling 2.1 동영상 생성기"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "prompt": "null",
+            "image_url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('image_url', ``, 'string') }}",
+            "negative_prompt": "null"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "prompt",
+              "displayName": "prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "image_url",
+              "displayName": "image_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            },
+            {
+              "id": "negative_prompt",
+              "displayName": "negative_prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        224
+      ],
+      "id": "0b97b8f0-00df-4543-b7b6-0f6736d44dad",
+      "name": "Generate Image to Video"
+    },
+    {
+      "parameters": {
+        "description": "Generate Image to Video 도구로 생성요청한 Video의 생성 상태를 조회하고 다운로드하는 도구.\n내부적으로 생성상태 확인은 2회 진행하며, 2회 안애 생성이 안되었을 경우, 다운로드가 실행되지 않음. 따라서, 이 도구를 다시 요청해야함.",
+        "workflowId": {
+          "__rl": true,
+          "value": "BLnXRE7CrhLzYVE3",
+          "mode": "list",
+          "cachedResultName": "Fal.ai Kling 2.1 동영상 다운로드"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request_id": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('request_id', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "request_id"
+          ],
+          "schema": [
+            {
+              "id": "request_id",
+              "displayName": "request_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        672,
+        224
+      ],
+      "id": "b780cf4f-83b3-469e-b4f6-e0f7b381a081",
+      "name": "Download Generated AI Video"
+    },
+    {
+      "parameters": {
+        "description": "text를 입력받아서, text to audio 로 AI성우 나레이션 오디오 생성해주는 도구",
+        "workflowId": {
+          "__rl": true,
+          "value": "biEkh9FutrFuNFMr",
+          "mode": "list",
+          "cachedResultName": "ElevenLabs 나레이션 생성기"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "text": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('text', ``, 'string') }}"
+          },
+          "matchingColumns": [
+            "text"
+          ],
+          "schema": [
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        848,
+        224
+      ],
+      "id": "436a7ef9-2756-4e04-9522-92d4d5f719ac",
+      "name": "Generate Narration"
+    },
+    {
+      "parameters": {
+        "description": "각 장면별 비디오 url, 나레이션(오디오) url, 자막 텍스트를 datasets에 배열로 전달하고, bgm_url에 배경음악으로 사용될 오디오 url을 전달하여 쇼츠 동영상을 자동으로 랜더링하여 최종 video Url을 전달해주는 도구",
+        "workflowId": {
+          "__rl": true,
+          "value": "homdMRKSdOnmZhWd",
+          "mode": "list",
+          "cachedResultName": "쇼츠 동영상 렌더링"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "bgm_url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('bgm_url', ``, 'string') }}",
+            "datasets": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('datasets', `[{\n  \"video_url\": \"비디오1 URL\",\n  \"audio_url\": \"오디오1 URL\", \n  \"subtitle\": \"자막1\"\n},{\n  \"video_url\": \"비디오2 URL\",\n  \"audio_url\": \"오디오2 URL\", \n  \"subtitle\": \"자막2\"\n}, ...\n]`, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "datasets",
+              "displayName": "datasets",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "array"
+            },
+            {
+              "id": "bgm_url",
+              "displayName": "bgm_url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string"
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolWorkflow",
+      "typeVersion": 2.2,
+      "position": [
+        1008,
+        224
+      ],
+      "id": "41f8a95a-2af5-4874-a2ed-6b7a75d76a07",
+      "name": "Rendering Final Shorts Video"
+    },
+    {
+      "parameters": {
+        "path": "483b68a4-b3c4-4be6-91d4-188a85ac968a"
+      },
+      "type": "@n8n/n8n-nodes-langchain.mcpTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        352,
+        -80
+      ],
+      "id": "5c163b61-3978-4297-91ae-ed98cc786291",
+      "name": "MCP Server Trigger",
+      "webhookId": "483b68a4-b3c4-4be6-91d4-188a85ac968a"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Generate Short Video Story": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate AI Image": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit AI Image": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Image to Video": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Generated AI Video": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Narration": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Rendering Final Shorts Video": {
+      "ai_tool": [
+        [
+          {
+            "node": "MCP Server Trigger",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "8762c26a-cd63-4bb0-936f-82bd96c1890e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "aadbff4410dd9d1786f247987e16ea2f31e4d42d2dd7d7f51389a021736ae496"
+  },
+  "id": "ZQWiCazTgryT7hVr",
+  "tags": []
+}
