@@ -1,0 +1,202 @@
+이 소스를 1.0 doclining-context-category-chunk_규정_v2.py처럼 doc from 
+  langchain_docling import DoclingLoader
+  from docling.chunking import HybridChunker
+  from FlagEmbedding import BGEM3FlagModel 으로 벡터화 한다면. 어떻게 하는게 좋을까. 
+  그리고 어떻게 질문을 날리는게 좋을까.
+
+● Looking at your C source code file and the need to vectorize it similar to your
+  existing 1.0 doclining-context-category-chunk_규정_v2.py using DoclingLoader,
+  HybridChunker, and BGEM3FlagModel, here's my recommendation:
+
+● Read(FBKO5310.c)
+  ⎿  Read 823 lines (ctrl+o to expand)
+
+● C 소스코드를 DoclingLoader, HybridChunker, BGEM3FlagModel로 벡터화하는 방법과 질문
+  전략을 제안드리겠습니다.
+
+  벡터화 방법
+
+  1. C 소스코드의 특성 고려한 청킹 전략
+
+  from langchain_docling import DoclingLoader
+  from docling.chunking import HybridChunker
+  from FlagEmbedding import BGEM3FlagModel
+
+  # C 코드 특성화된 청킹 설정
+  chunker = HybridChunker(
+      chunk_size=1000,  # C 함수 단위 고려
+      chunk_overlap=200,
+
+      # C 코드 구조 인식 설정
+      separators=[
+          "\n/*-----------------------------------------------------------------------
+  -------------------------*/\n",  # 섹션 구분자
+          "\nstatic int ",  # 함수 시작
+          "\nextern int ",  # 외부 함수
+          "\n#include ",   # 헤더 포함
+          "\n#define ",    # 매크로 정의
+          "\ntypedef struct",  # 구조체 정의
+      ],
+      keep_separator=True
+  )
+
+  # FBKO5310.c 특화 청킹
+  def create_code_chunks(file_path):
+      loader = DoclingLoader(file_path)
+      docs = loader.load()
+
+      # C 코드 메타데이터 추가
+      for doc in docs:
+          doc.metadata.update({
+              "file_type": "c_source",
+              "program_id": "FBKO5310",
+              "program_name": "보고서 송신",
+              "system": "한국은행 보고서 시스템",
+              "language": "C"
+          })
+
+      chunks = chunker.split_documents(docs)
+
+      # 청크별 컨텍스트 강화
+      enhanced_chunks = []
+      for chunk in chunks:
+          # 함수/섹션 정보 추출
+          content = chunk.page_content
+          if "static int" in content:
+              func_name = extract_function_name(content)
+              chunk.metadata["function"] = func_name
+              chunk.metadata["chunk_type"] = "function"
+          elif "#define" in content:
+              chunk.metadata["chunk_type"] = "macro_definitions"
+          elif "typedef struct" in content:
+              chunk.metadata["chunk_type"] = "data_structure"
+          elif "#include" in content:
+              chunk.metadata["chunk_type"] = "headers"
+
+          enhanced_chunks.append(chunk)
+
+      return enhanced_chunks
+
+  2. 벡터화 및 인덱싱
+
+  # BGEM3 모델 초기화
+  model = BGEM3FlagModel('BAAI/bge-m3', use_fp16=True)
+
+  # 벡터 저장소 구축
+  def create_vector_store(chunks):
+      texts = [chunk.page_content for chunk in chunks]
+      metadatas = [chunk.metadata for chunk in chunks]
+
+      # 임베딩 생성 (sparse + dense)
+      embeddings = model.encode(texts, return_dense=True, return_sparse=True)
+
+      # 계층적 인덱스 구성
+      return {
+          'dense_vectors': embeddings['dense_vecs'],
+          'sparse_vectors': embeddings['lexical_weights'],
+          'texts': texts,
+          'metadatas': metadatas,
+          'chunks': chunks
+      }
+
+  질문 전략
+
+  1. 코드 구조 이해 질문
+
+  structure_questions = [
+      # 전체 아키텍처
+      "FBKO5310.c 프로그램의 전체 구조와 주요 기능은 무엇인가?",
+      "한국은행 보고서 송신 시스템의 처리 흐름을 설명해주세요",
+
+      # 함수별 상세
+      "D1000_Process 함수는 어떤 역할을 하며 어떤 전문을 처리하나?",
+      "MCI 호출 과정에서 사용되는 전문 구조는 어떻게 구성되나?",
+
+      # 데이터 구조
+      "T_BOK_COMMON 구조체의 각 필드는 어떤 용도로 사용되는가?",
+      "보고서 송신 과정에서 사용되는 주요 전역변수들의 역할은?"
+  ]
+
+  2. 비즈니스 로직 질문
+
+  business_questions = [
+      # 업무 흐름
+      "거래구분 코드 1,2,3에 따른 처리 차이점은 무엇인가?",
+      "파일 확인요구 전문(MT3004)의 처리 로직을 상세히 설명해주세요",
+
+      # 에러 처리
+      "통신상태내역변경 AG 호출 시 오류가 발생하면 어떻게 처리되나?",
+      "전문 송신 실패 시 시스템은 어떤 복구 메커니즘을 가지고 있나?",
+
+      # 보안 관련
+      "은행 인증 정보(BANK_ID, BANK_PWD)는 어떻게 관리되나?",
+      "대외 통신 시 보안 검증 과정은 어떻게 이루어지나?"
+  ]
+
+  3. 기술적 상세 질문
+
+  technical_questions = [
+      # 성능/최적화
+      "SEND_DATA_MAX 크기 제한이 성능에 미치는 영향은?",
+      "레코드 블록 크기 계산 로직의 효율성을 개선할 방법은?",
+
+      # 유지보수
+      "새로운 전문 타입 추가 시 수정이 필요한 부분은 어디인가?",
+      "SQLIO 인터페이스 변경 시 영향을 받는 함수들은?",
+
+      # 디버깅
+      "PUSRDSP 로그 메시지들로 어떤 문제를 추적할 수 있나?",
+      "전문 길이 계산 오류가 발생할 가능성이 있는 지점은?"
+  ]
+
+  4. 시스템 연계 질문
+
+  integration_questions = [
+      # 외부 시스템
+      "MIC 시스템과의 연동에서 중요한 고려사항은?",
+      "DBIO/SQLIO 인터페이스를 통한 데이터베이스 연동 구조는?",
+
+      # 모듈 의존성
+      "FBKG5410, FBKG5420, FBKG5440 AG들의 역할과 호출 순서는?",
+      "SFBK5310000 구조체가 다른 모듈과 어떻게 연동되나?",
+
+      # 설정 관리
+      "시스템별 설정값들(은행코드, 채널ID 등)의 관리 방법은?",
+      "환경별 배포 시 변경되어야 할 설정들은 무엇인가?"
+  ]
+
+  5. RAG 시스템 구현
+
+  def answer_question(question, vector_store, model, k=5):
+      # 1. 하이브리드 검색 (dense + sparse)
+      query_embedding = model.encode([question], return_dense=True,
+  return_sparse=True)
+
+      # 2. 관련 청크 검색
+      relevant_chunks = hybrid_search(
+          query_embedding,
+          vector_store,
+          k=k,
+          alpha=0.7  # dense:sparse 비율
+      )
+
+      # 3. 컨텍스트 구성 (함수별, 섹션별 그룹화)
+      context = build_hierarchical_context(relevant_chunks)
+
+      # 4. 답변 생성
+      prompt = f"""
+      다음은 FBKO5310.c 한국은행 보고서 송신 프로그램의 소스코드입니다.
+      
+      컨텍스트:
+      {context}
+      
+      질문: {question}
+      
+      코드의 구체적인 내용을 바탕으로 정확하고 상세한 답변을 제공해주세요.
+      필요시 해당 코드 라인을 인용하여 설명해주세요.
+      """
+
+      return prompt
+
+  이 방식으로 C 소스코드를 효과적으로 벡터화하고, 계층적이고 구조화된 질문을 통해
+  코드에 대한 깊이 있는 이해를 얻을 수 있습니다.
