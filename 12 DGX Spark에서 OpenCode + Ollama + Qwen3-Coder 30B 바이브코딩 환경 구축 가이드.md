@@ -1,3 +1,5 @@
+https://claude.ai/chat/25d43bda-990a-4499-83bd-9092812bfbc2
+
 # DGX Spark에서 OpenCode + Ollama + Qwen3-Coder 30B 바이브코딩 환경 구축 가이드
 
 > **대상 환경**: NVIDIA DGX Spark (128GB 통합메모리)  
