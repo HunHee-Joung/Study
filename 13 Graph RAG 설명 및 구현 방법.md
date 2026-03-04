@@ -937,4 +937,4 @@ MATCH (n:Entity) WHERE n.name CONTAINS "여신" RETURN n.name;
 ---
 
 *문서 작성: BNK 부산은행 IT기획부 AI인프라팀*  
-*최종 업데이트: 2024년 03월*
+*최종 업데이트: 2026년 03월*
